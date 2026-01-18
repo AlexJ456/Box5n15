@@ -33,6 +33,42 @@ document.addEventListener('DOMContentLoaded', () => {
     let wakeLock = null;
     let audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
+    // Settings persistence
+    const SETTINGS_KEY = 'boxBreathingSettings';
+
+    function saveSettings() {
+        try {
+            const settings = {
+                soundEnabled: state.soundEnabled,
+                phaseTime: state.phaseTime
+            };
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        } catch (e) {
+            console.error('Failed to save settings:', e);
+        }
+    }
+
+    function loadSettings() {
+        try {
+            const saved = localStorage.getItem(SETTINGS_KEY);
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (typeof settings.soundEnabled === 'boolean') {
+                    state.soundEnabled = settings.soundEnabled;
+                }
+                if (typeof settings.phaseTime === 'number' && settings.phaseTime >= 3 && settings.phaseTime <= 10) {
+                    state.phaseTime = settings.phaseTime;
+                    state.countdown = settings.phaseTime;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load settings:', e);
+        }
+    }
+
+    // Load saved settings on startup
+    loadSettings();
+
     const icons = {
         play: `<svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
         pause: `<svg class="icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`,
@@ -235,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleSound() {
         state.soundEnabled = !state.soundEnabled;
+        saveSettings();
         render();
     }
 
@@ -569,7 +606,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const phaseTimeSlider = document.getElementById('phase-time-slider');
             phaseTimeSlider.addEventListener('input', function() {
                 state.phaseTime = parseInt(this.value);
+                state.countdown = state.phaseTime;
                 document.getElementById('phase-time-value').textContent = state.phaseTime;
+                saveSettings();
             });
             document.getElementById('preset-2min').addEventListener('click', () => startWithPreset(2));
             document.getElementById('preset-5min').addEventListener('click', () => startWithPreset(5));
